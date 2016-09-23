@@ -16,7 +16,10 @@ End Sub
 
 ' Called from external script (i.e. powershell, batch, etc.)
 Public Sub UpdateDatabase()
-    DbUpdate signalCompletion:=False
+    ' Minimize Access window
+    DoCmd.Minimize
+    ' Run the general macro to update the database
+    DbUpdate
 End Sub
 
 
@@ -30,6 +33,12 @@ Function TableClear(tableName As String)
     db.Execute clearSQL
 End Function
 
+' Imports data from excel.  <fName> can contain wildcard characters (*)
+'  @Param tableName: name of table database object to import the data into
+'  @Param path: file path that the excel document(s) to be imported are to be found
+'  @Param fName: file names of excel document(s) with extention. Can contain wildcard characters (*).
+'  @Param tabName: name of the specific tab label within the excel document to import data from.
+'  @Returns Nothing
 Function ImportFilesExcel(tableName As String, path As String, fName As String, tabName As String)
     Dim i As Integer
     Dim file As String
@@ -38,7 +47,7 @@ Function ImportFilesExcel(tableName As String, path As String, fName As String, 
     
     str = ""
     
-    ' Turn off warnings
+    ' Turn off warnings for more autonomous importing
     DoCmd.SetWarnings False
     
     ' Search 'dir' for fName
@@ -75,7 +84,8 @@ ErrEnter:
             'no error
         Case 3011
             ' couldn't find file/tab
-            MsgBox "The file """ & fPath & """ or tab """ & tabName & """ could not be found!" & vbCrLf & vbCrLf & _
+            ' commented out to test functionality - needed this error catch due to some files not being imported.
+            'MsgBox "The file """ & fPath & """ or tab """ & tabName & """ could not be found!" & vbCrLf & vbCrLf & _
                 "Error " & Err.Number & ": " & Err.Description & vbCrLf & vbCrLf & "Source: " & Err.Source
         Case Else
             MsgBox "Error " & Err.Number & ": " & Err.Description & vbCrLf & vbCrLf & "Source: " & Err.Source
@@ -84,6 +94,11 @@ ErrEnter:
     Resume ExitFunc
 End Function
 
+' Exports a table to an excel file
+'  @Param tblName: name of the table database object to have it's data exported
+'  @Param [exportPath, Default = current path]: directory to save the exported data.
+'  @Param [excelFileName, Default = tblName]: name of excel file to save exported data.
+'  @Return Nothing
 Function ExportExcel(tblName As String, Optional exportPath As String, Optional excelFileName As String)
     On Error GoTo Err_Enter
     
@@ -115,7 +130,7 @@ Err_Enter:
     Resume Err_Exit
 End Function
 
-
+' use ADODB to query ADOX.Catalog.Table for sheet names as it shouldn't need to open the workbook
 Function GetWorksheetNames(ByVal fName As String) As Variant
     Dim objXl As Object
     Dim objWb As Object
